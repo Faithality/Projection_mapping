@@ -1,0 +1,11 @@
+{
+  "name": "lovixx-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "guides": "node make_guides.js"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "2.6.2"
+  }
+}

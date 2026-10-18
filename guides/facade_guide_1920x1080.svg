@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<rect width="1920" height="1080" fill="#000"/>
+<line x1="0" y1="0" x2="0" y2="1080" stroke="#1f2328" stroke-width="1"/>
+<line x1="137.1" y1="0" x2="137.1" y2="1080" stroke="#3a3f45" stroke-width="2"/>
+<text x="141.1" y="1074" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">-3 м</text>
+<line x1="274.3" y1="0" x2="274.3" y2="1080" stroke="#1f2328" stroke-width="1"/>
+<line x1="411.4" y1="0" x2="411.4" y2="1080" stroke="#3a3f45" stroke-width="2"/>
+<text x="415.4" y="1074" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">-2 м</text>
+<line x1="548.6" y1="0" x2="548.6" y2="1080" stroke="#1f2328" stroke-width="1"/>
+<line x1="685.7" y1="0" x2="685.7" y2="1080" stroke="#3a3f45" stroke-width="2"/>
+<text x="689.7" y="1074" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">-1 м</text>
+<line x1="822.9" y1="0" x2="822.9" y2="1080" stroke="#1f2328" stroke-width="1"/>
+<line x1="960" y1="0" x2="960" y2="1080" stroke="#3a3f45" stroke-width="2"/>
+<text x="964" y="1074" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">0 м</text>
+<line x1="1097.1" y1="0" x2="1097.1" y2="1080" stroke="#1f2328" stroke-width="1"/>
+<line x1="1234.3" y1="0" x2="1234.3" y2="1080" stroke="#3a3f45" stroke-width="2"/>
+<text x="1238.3" y="1074" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">+1 м</text>
+<line x1="1371.4" y1="0" x2="1371.4" y2="1080" stroke="#1f2328" stroke-width="1"/>
+<line x1="1508.6" y1="0" x2="1508.6" y2="1080" stroke="#3a3f45" stroke-width="2"/>
+<text x="1512.6" y="1074" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">+2 м</text>
+<line x1="1645.7" y1="0" x2="1645.7" y2="1080" stroke="#1f2328" stroke-width="1"/>
+<line x1="1782.9" y1="0" x2="1782.9" y2="1080" stroke="#3a3f45" stroke-width="2"/>
+<text x="1786.9" y="1074" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">+3 м</text>
+<line x1="1920" y1="0" x2="1920" y2="1080" stroke="#1f2328" stroke-width="1"/>
+<line x1="0" y1="1080" x2="1920" y2="1080" stroke="#3a3f45" stroke-width="2"/>
+<line x1="0" y1="942.9" x2="1920" y2="942.9" stroke="#1f2328" stroke-width="1"/>
+<line x1="0" y1="805.7" x2="1920" y2="805.7" stroke="#3a3f45" stroke-width="2"/>
+<text x="6" y="799.7" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">1 м</text>
+<line x1="0" y1="668.6" x2="1920" y2="668.6" stroke="#1f2328" stroke-width="1"/>
+<line x1="0" y1="531.4" x2="1920" y2="531.4" stroke="#3a3f45" stroke-width="2"/>
+<text x="6" y="525.4" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">2 м</text>
+<line x1="0" y1="394.3" x2="1920" y2="394.3" stroke="#1f2328" stroke-width="1"/>
+<line x1="0" y1="257.1" x2="1920" y2="257.1" stroke="#3a3f45" stroke-width="2"/>
+<text x="6" y="251.10000000000002" font-family="Arial, sans-serif" font-size="16" fill="#7d8790">3 м</text>
+<line x1="0" y1="120" x2="1920" y2="120" stroke="#1f2328" stroke-width="1"/>
+<line x1="960" y1="0" x2="960" y2="1080" stroke="#5b6670" stroke-width="2" stroke-dasharray="12 10"/>
+<rect x="0" y="0" width="1920" height="120" fill="#2a1414" fill-opacity="0.6"/>
+<text x="960" y="67" font-family="Arial, sans-serif" font-size="20" fill="#c06a6a" text-anchor="middle">поза сіткою (0.44 м)</text>
+<rect x="0" y="668.6" width="1920" height="411.4" fill="#5a2a00" fill-opacity="0.35"/>
+<text x="1906" y="694.6" font-family="Arial, sans-serif" font-size="20" fill="#d08a40" text-anchor="end">темна зона 1.5 м — тіні артистів і рук</text>
+<rect x="0" y="120" width="1920" height="960" fill="none" stroke="#4CC3E3" stroke-width="4"/>
+<text x="960" y="154" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#4CC3E3" text-anchor="middle">СІТКА 7 × 3.5 м</text>
+<text x="960" y="1040" font-family="Arial, sans-serif" font-size="18" fill="#8a7a6a" text-anchor="middle">пропси не задані (config: props.items)</text>
+<text x="14" y="28" font-family="Arial, sans-serif" font-size="18" fill="#9aa4ad">LOVIXX · фасад 1920×1080 = 7.00 × 3.94 м · 274.3 px/м · низ кадру = планшет сцени</text>
+</svg>

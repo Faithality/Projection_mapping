@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<rect width="1920" height="1080" fill="#000"/>
+<rect x="0" y="120" width="1920" height="960" fill="#00E5FF"/>
+<path d="M32,128 L8,128 L8,152" fill="none" stroke="#000" stroke-width="16"/>
+<path d="M32,124 L4,124 L4,152" fill="none" stroke="#fff" stroke-width="8"/>
+<path d="M1888,128 L1912,128 L1912,152" fill="none" stroke="#000" stroke-width="16"/>
+<path d="M1888,124 L1916,124 L1916,152" fill="none" stroke="#fff" stroke-width="8"/>
+<path d="M1888,1072 L1912,1072 L1912,1048" fill="none" stroke="#000" stroke-width="16"/>
+<path d="M1888,1076 L1916,1076 L1916,1048" fill="none" stroke="#fff" stroke-width="8"/>
+<path d="M32,1072 L8,1072 L8,1048" fill="none" stroke="#000" stroke-width="16"/>
+<path d="M32,1076 L4,1076 L4,1048" fill="none" stroke="#fff" stroke-width="8"/>
+<text x="960" y="608" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#000" text-anchor="middle">scrim</text>
+</svg>
