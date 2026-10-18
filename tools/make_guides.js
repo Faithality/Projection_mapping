@@ -1,15 +1,19 @@
 // Підкладки для MadMapper-проєкту «Полотно» з config/stage_config.json.
-// Запуск: node make_guides.js [config] [outDir]
+// Запуск: node make_guides.js [config] [outDir] [--venue файл_майданчика]
+// З --venue і без outDir — вихід у <папка файлу майданчика>/guides.
 // Вихід: facade_guide_WxH.{svg,png}, facade_id_frame.{svg,png}, surfaces.csv, surfaces.md
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
+import { loadConfig, takeVenueArg } from './load_config.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const cfgPath = resolve(process.argv[2] ?? join(here, '../config/stage_config.json'));
-const outDir = resolve(process.argv[3] ?? join(here, '../guides'));
-const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
+const [venuePath, pos] = takeVenueArg(process.argv.slice(2));
+const cfgPath = resolve(pos[0] ?? join(here, '../config/stage_config.json'));
+// З --venue підкладки за замовчуванням ідуть поруч із файлом майданчика, щоб не переписати базові guides/.
+const outDir = resolve(pos[1] ?? (venuePath ? join(dirname(resolve(venuePath)), 'guides') : join(here, '../guides')));
+const cfg = loadConfig(cfgPath, venuePath);
 
 const { canvas, scrim, props } = cfg;
 const [RW, RH] = canvas.resolution;

@@ -71,6 +71,9 @@ dd[data-s="bad"] { color: var(--bad); }
 .pform { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; margin-bottom: 12px; }
 .pform label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
 .pform .wide { grid-column: 1 / -1; }
+.pform select { width: 100%; box-sizing: border-box; font: 500 13px var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; }
+.pform select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.media button:disabled { opacity: 0.4; cursor: default; }
 .pform input { width: 100%; box-sizing: border-box; font: 500 13px var(--mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; min-width: 0; }
 .pform input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .pform[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
@@ -102,6 +105,21 @@ code { font: 12px var(--mono); color: var(--fg); }
       <h1>LOVIXX · превіз проєкції</h1>
       <p class="sub">Сцена 8 × 5 м, сітка 7 × 3.5 м, два проєктори по 6000 ANSI лм у stack. Кадр 16:9 шириною 7 м, низ кадру на рівні сцени.</p>
     </header>
+
+    <section>
+      <h2>Майданчик</h2>
+      <div class="pform">
+        <label class="wide">Пресет <select id="v-list"></select></label>
+        <label class="wide">Назва <input type="text" id="v-name" spellcheck="false" placeholder="2026-11-14 Київ, клуб"></label>
+      </div>
+      <div class="media">
+        <button type="button" id="v-save">Зберегти</button>
+        <button type="button" id="v-del">Видалити</button>
+        <button type="button" id="v-export">Експорт файлу</button>
+        <label class="filebtn"><input type="file" id="v-import" accept=".json,application/json"> Імпорт файлу</label>
+      </div>
+      <p class="sub" id="vstatus" role="status"></p>
+    </section>
 
     <section>
       <h2>Проєктори</h2>
@@ -695,6 +713,128 @@ $('p-import').addEventListener('change', async e => {
   }
 });
 buildProps(); renderProps(); fillForm();
+
+// ---- Пресети майданчиків. Файл — ті самі ключі, що в stage_config.json (накладається поверх конфігу в tools).
+const SLIDERS = [['d', 'D', 'projectors', 'distance_to_scrim'], ['h', 'H', 'projectors', 'lens_height_from_floor'], ['off', 'off', 'projectors', 'offset_from_axis'], ['y', 'Y', 'scrim', 'z']];
+const BASE = { venue: 'База (конфіг)', D: 12.5, H: 4, off: 2, Y: 2.5, props: [] };
+const VENUES_KEY = 'lovixx-previz-venues', STATE_KEY = 'lovixx-previz-state';
+let venues = {};
+try { const v = JSON.parse(localStorage.getItem(VENUES_KEY)); if (v && typeof v === 'object') venues = v; } catch (e) {}
+function vstatus(text, bad) { const el = $('vstatus'); el.textContent = text; el.style.color = bad ? 'var(--bad)' : ''; }
+function storeVenues() { try { localStorage.setItem(VENUES_KEY, JSON.stringify(venues)); return true; } catch (e) { return false; } }
+function saveState() { try { localStorage.setItem(STATE_KEY, JSON.stringify({ D: S.D, H: S.H, off: S.off, Y: S.Y, venue: $('v-name').value })); } catch (e) {} }
+const snapshot = name => ({ venue: name, D: S.D, H: S.H, off: S.off, Y: S.Y, props: PR.map(p => ({ ...p })) });
+
+// Ставить значення в повзунки; повертає список того, що не влізло в діапазон.
+function applyState(st, withProps) {
+  const clipped = [];
+  for (const [id, key] of SLIDERS) {
+    if (!Number.isFinite(st[key])) continue;
+    const el = $(id), min = +el.min, max = +el.max;
+    const v = Math.min(max, Math.max(min, st[key]));
+    if (v !== st[key]) clipped.push(`${key} ${fmt(st[key], 2)} → ${fmt(v, 2)} (повзунок ${el.min}–${el.max})`);
+    S[key] = v; el.value = v;
+  }
+  if (withProps) { PR = (st.props || []).map(p => ({ ...p })); sel = PR.length ? 0 : -1; saveProps(); buildProps(); fillForm(); }
+  update();
+  if (current === 'proj' || current === 'side' || current === 'top') setView(current);
+  return clipped;
+}
+function renderVenues(selected) {
+  const list = $('v-list');
+  list.textContent = '';
+  const add = (value, label) => { const o = document.createElement('option'); o.value = value; o.textContent = label; list.appendChild(o); };
+  add('', BASE.venue);
+  Object.keys(venues).sort().forEach(n => add(n, n));
+  list.value = selected && venues[selected] ? selected : '';
+  $('v-del').disabled = !list.value;
+}
+$('v-list').addEventListener('change', e => {
+  const name = e.target.value;
+  const st = name ? venues[name] : BASE;
+  const clipped = applyState(st, true);
+  $('v-name').value = name;
+  $('v-del').disabled = !name;
+  saveState();
+  vstatus(clipped.length ? 'Обрізано: ' + clipped.join('; ') : `Завантажено: ${st.venue}.`, clipped.length > 0);
+});
+$('v-save').addEventListener('click', () => {
+  const name = $('v-name').value.trim();
+  if (!name) { vstatus('Введи назву майданчика.', true); $('v-name').focus(); return; }
+  const existed = !!venues[name];
+  venues[name] = snapshot(name);
+  const ok = storeVenues();
+  renderVenues(name);
+  saveState();
+  vstatus(ok ? `${existed ? 'Оновлено' : 'Збережено'}: ${name}. Пресет живе лише в цьому браузері — для 05_venues/ зроби експорт.` : 'Браузер не дав зберегти — користуйся експортом файлу.', !ok);
+});
+$('v-del').addEventListener('click', () => {
+  const name = $('v-list').value;
+  if (!name) return;
+  delete venues[name];
+  storeVenues();
+  renderVenues('');
+  vstatus(`Видалено з браузера: ${name}. Поточні значення на сцені лишились.`);
+});
+$('v-export').addEventListener('click', () => {
+  const name = $('v-name').value.trim() || 'майданчик';
+  const data = {
+    _about: 'Пресет майданчика LOVIXX з превізу. Накладається поверх config/stage_config.json: node tools/optics.js --venue <цей файл>.',
+    venue: name,
+    scrim: { z: r2(S.Y) },
+    projectors: { distance_to_scrim: r2(S.D), lens_height_from_floor: r2(S.H), offset_from_axis: r2(S.off) },
+    props: { items: PR.map(p => ({ name: p.name, x: r2(p.x), y: r2(p.y), width: r2(p.width), height: r2(p.height), z: r2(p.z), depth: r2(p.depth) })) }
+  };
+  const slug = name.toLowerCase().replace(/\s+/g, '_').replace(/[^\p{L}\p{N}_-]+/gu, '') || 'venue';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2) + '\n'], { type: 'application/json' }));
+  a.download = `venue_${slug}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  vstatus(`${a.download} збережено. Поклади в 05_venues/<клуб>/.`);
+});
+$('v-import').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const j = JSON.parse(await file.text());
+    const pr = j.projectors || {}, sc = j.scrim || {};
+    const st = { venue: String(j.venue || file.name.replace(/\.json$/i, '')), D: +pr.distance_to_scrim, H: +pr.lens_height_from_floor, off: +pr.offset_from_axis, Y: +sc.z };
+    const hasProps = j.props && Array.isArray(j.props.items);
+    if (![st.D, st.H, st.off, st.Y].some(Number.isFinite) && !hasProps) throw new Error('немає ні projectors/scrim, ні props.items');
+    if (hasProps) {
+      st.props = j.props.items.map((p, i) => {
+        const it = { name: String(p.name || 'prop_' + (i + 1)), x: +p.x, y: Number.isFinite(+p.y) ? +p.y : 0, width: +p.width, height: +p.height, z: +p.z, depth: Number.isFinite(+p.depth) && +p.depth > 0 ? +p.depth : 0.5 };
+        if (![it.x, it.width, it.height, it.z].every(Number.isFinite) || it.width <= 0 || it.height <= 0) throw new Error(`пропс ${i + 1}: потрібні числа x, width, height, z`);
+        return it;
+      });
+    }
+    for (const [, key] of SLIDERS) if (!Number.isFinite(st[key])) st[key] = S[key];
+    const clipped = applyState(st, hasProps);
+    $('v-name').value = st.venue;
+    venues[st.venue] = snapshot(st.venue);
+    const ok = storeVenues();
+    renderVenues(st.venue);
+    saveState();
+    const msg = [`Імпортовано: ${st.venue}${hasProps ? `, пропсів ${PR.length}` : ', пропси без змін'}.`];
+    if (clipped.length) msg.push('Обрізано: ' + clipped.join('; ') + '.');
+    if (!ok) msg.push('У браузері не збережено.');
+    vstatus(msg.join(' '), clipped.length > 0 || !ok);
+  } catch (err) {
+    vstatus(`Не вдалося імпортувати ${file.name}: ${err.message}`, true);
+  }
+});
+// Відновити останній стан повзунків (пропси вже відновлені вище).
+try {
+  const st = JSON.parse(localStorage.getItem(STATE_KEY));
+  if (st) {
+    for (const [id, key] of SLIDERS) if (Number.isFinite(st[key])) { S[key] = st[key]; $(id).value = st[key]; }
+    $('v-name').value = st.venue || '';
+  }
+} catch (e) {}
+renderVenues($('v-name').value);
+['d', 'h', 'off', 'y'].forEach(id => $(id).addEventListener('change', saveState));
 
 function resize() {
   const w = view.clientWidth, h = view.clientHeight;

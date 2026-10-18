@@ -1,9 +1,9 @@
 // Калькулятор оптики. Значення за замовчуванням — з config/stage_config.json, будь-яке можна перекрити прапорцем.
 // Запуск: node optics.js [--D 12.5] [--H 4] [--off 2] [--Y 2.5] [--lumens 6000] [--n 2]
-//                        [--tr-min 1.2] [--tr-max 2.0] [--reflectance 0.3] [--config шлях]
-import { readFileSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
+//                        [--tr-min 1.2] [--tr-max 2.0] [--reflectance 0.3] [--config шлях] [--venue файл]
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadConfig } from './load_config.js';
 
 const HELP = `Прапорці (метри, якщо не сказано інше):
   --D            відстань лінза → сітка
@@ -16,7 +16,8 @@ const HELP = `Прапорці (метри, якщо не сказано інш�
   --scrim-w, --scrim-h розміри сітки
   --reflectance  коефіцієнт відбиття сітки 0–1 (без нього nit не рахується)
   --artist-h, --artist-d  ріст артиста і відстань перед сіткою
-  --config       шлях до stage_config.json`;
+  --config       шлях до stage_config.json
+  --venue        файл майданчика (експорт з превізу) поверх конфігу`;
 
 const args = {};
 const argv = process.argv.slice(2);
@@ -27,7 +28,7 @@ for (let i = 0; i < argv.length; i++) {
   args[a.slice(2)] = argv[++i];
 }
 const here = dirname(fileURLToPath(import.meta.url));
-const cfg = JSON.parse(readFileSync(resolve(args.config ?? join(here, '../config/stage_config.json')), 'utf8'));
+const cfg = loadConfig(args.config ?? join(here, '../config/stage_config.json'), args.venue);
 const num = (key, def) => {
   if (args[key] === undefined) return def;
   const v = parseFloat(String(args[key]).replace(',', '.'));
