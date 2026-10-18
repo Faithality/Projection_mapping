@@ -56,6 +56,14 @@ dd[data-s="bad"] { color: var(--bad); }
 .legend { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 12px; color: var(--muted); align-items: center; }
 .sw { width: 18px; height: 4px; border-radius: 2px; }
 .err { color: var(--bad); font-size: 13px; }
+.media { display: flex; flex-wrap: wrap; gap: 6px; }
+.media button, .filebtn { font: 500 13px var(--body); color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; cursor: pointer; }
+.filebtn { border-color: var(--cyan); color: var(--cyan); }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.filebtn:focus-within, .media button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.media [hidden] { display: none; }
+#media-info { overflow-wrap: anywhere; }
+#media-info[data-s="bad"] { color: var(--bad); }
 @media (max-width: 820px) {
   .app { grid-template-columns: 1fr; grid-template-rows: 58vh auto; height: auto; min-height: 100%; }
   aside { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
@@ -99,6 +107,16 @@ dd[data-s="bad"] { color: var(--bad); }
         <label class="chip"><input type="checkbox" id="props" checked> Пропси (умовно)</label>
         <label class="chip"><input type="checkbox" id="white"> Тест: біле поле</label>
       </div>
+    </section>
+
+    <section>
+      <h2>Контент</h2>
+      <div class="media">
+        <label class="filebtn"><input type="file" id="media" accept="video/*,image/*"> Свій кадр або відео</label>
+        <button type="button" id="media-play" hidden>Пауза</button>
+        <button type="button" id="media-reset" hidden>Демо</button>
+      </div>
+      <p class="sub" id="media-info"></p>
     </section>
 
     <section>
@@ -256,6 +274,7 @@ tex.width = tex.height = 1024;
 const ctx = tex.getContext('2d');
 const map = new THREE.CanvasTexture(tex);
 map.colorSpace = THREE.SRGBColorSpace;
+let media = null; // свій кадр або відео: { el, url, kind, ready }
 
 function drawContent(t) {
   const N = tex.width;
@@ -264,6 +283,7 @@ function drawContent(t) {
   const w = N * (IMG_W / 2) / R, h = N * (IMG_H / 2) / R;
   const x0 = N / 2 - w / 2, y0 = N / 2 - h / 2;
   if (S.white) { ctx.fillStyle = '#fff'; ctx.fillRect(x0, y0, w, h); return; }
+  if (media && media.ready) { ctx.drawImage(media.el, x0, y0, w, h); return; }
   const V = v => y0 + v * h;
   const U = u => x0 + u * w;
   ctx.lineWidth = 3;
@@ -435,6 +455,61 @@ function setView(name) {
 ['p1', 'p2', 'haze', 'crowd', 'props', 'white'].forEach(id => {
   $(id).addEventListener('change', e => { S[id] = e.target.checked; update(); drawContent(time); map.needsUpdate = true; });
 });
+
+// Свій контент: файл відкривається локально (object URL), у мережу не йде.
+const MEDIA_HINT = 'Демо-графіка. Свій файл — кадр «Полотна» 1920×1080: картинка або відео H.264 MP4 / WebM (HAP браузер не відкриває). Файл не завантажується в мережу.';
+function mediaInfo(text, bad) { const el = $('media-info'); el.textContent = text; if (bad) el.dataset.s = 'bad'; else delete el.dataset.s; }
+function mediaUi() {
+  const v = media && media.kind === 'video' && media.ready;
+  $('media-play').hidden = !v;
+  if (v) $('media-play').textContent = media.el.paused ? 'Грати' : 'Пауза';
+  $('media-reset').hidden = !media;
+}
+function clearMedia() {
+  if (media) {
+    if (media.kind === 'video') { media.el.pause(); media.el.removeAttribute('src'); media.el.load(); }
+    URL.revokeObjectURL(media.url);
+  }
+  media = null;
+  mediaInfo(MEDIA_HINT);
+  mediaUi();
+}
+function setMedia(file) {
+  clearMedia();
+  const url = URL.createObjectURL(file);
+  const kind = file.type.startsWith('video/') || /\.(mp4|m4v|mov|webm)$/i.test(file.name) ? 'video' : 'image';
+  const el = kind === 'video' ? document.createElement('video') : new Image();
+  const m = { el, url, kind, ready: false };
+  media = m;
+  mediaInfo('Відкриваю ' + file.name + '…');
+  const ready = (w, h) => {
+    if (media !== m) return;
+    m.ready = true;
+    const wide = Math.abs(w / h - 16 / 9) > 0.01;
+    mediaInfo(`${file.name} · ${w}×${h}${wide ? ' · не 16:9, розтягнуто на кадр' : ''}`, wide);
+    mediaUi();
+  };
+  const fail = () => {
+    if (media !== m) return;
+    clearMedia();
+    mediaInfo(`Браузер не відкрив «${file.name}». Відео — H.264 MP4 або WebM, HAP не підтримується.`, true);
+  };
+  if (kind === 'video') {
+    el.muted = true; el.loop = true; el.playsInline = true;
+    el.addEventListener('loadeddata', () => { ready(el.videoWidth, el.videoHeight); el.play().catch(() => {}); }, { once: true });
+    el.addEventListener('play', mediaUi);
+    el.addEventListener('pause', mediaUi);
+    el.addEventListener('error', fail, { once: true });
+  } else {
+    el.onload = () => ready(el.naturalWidth, el.naturalHeight);
+    el.onerror = fail;
+  }
+  el.src = url;
+}
+$('media').addEventListener('change', e => { const f = e.target.files[0]; if (f) setMedia(f); e.target.value = ''; });
+$('media-play').addEventListener('click', () => { if (!media) return; if (media.el.paused) media.el.play().catch(() => {}); else media.el.pause(); });
+$('media-reset').addEventListener('click', clearMedia);
+mediaInfo(MEDIA_HINT);
 
 function resize() {
   const w = view.clientWidth, h = view.clientHeight;
