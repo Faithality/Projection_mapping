@@ -59,6 +59,7 @@
 
   "shadow_checks": {
     "artist": { "height": 1.8, "distance_before_scrim": 1.5 },
-    "front_row_hands": { "height_from_floor": 2.3 }
+    "front_row_hands": { "height_from_floor": 2.3 },
+    "crowd_heads": { "height_from_floor": 1.7 }
   }
 }

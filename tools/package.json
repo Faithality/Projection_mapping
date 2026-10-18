@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "guides": "node make_guides.js"
+    "guides": "node make_guides.js",
+    "optics": "node optics.js"
   },
   "dependencies": {
     "@resvg/resvg-js": "2.6.2"
