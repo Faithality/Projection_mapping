@@ -1,0 +1,64 @@
+{
+  "_about": "Єдине джерело геометрії сетапу LOVIXX. Усі розміри в метрах. Піксельні значення скрипти рахують самі з canvas.",
+  "_coords": "x — від осі сцени, ліворуч від'ємний (як дивиться зал). y — висота над планшетом сцени (підлога зали = -stage.height_above_floor). z — глибина від переднього краю сцени вглиб, у бік залу від'ємна.",
+
+  "stage": {
+    "width": 8.0,
+    "depth": 5.0,
+    "height_above_floor": 0.8,
+    "min_clear_height": 4.0
+  },
+
+  "scrim": {
+    "_material": "темно-сірий sharkstooth / hologauze",
+    "width": 7.0,
+    "height": 3.5,
+    "z": 2.5,
+    "z_range": [2.0, 3.0],
+    "bottom_y": 0.0,
+    "dark_zone_height": 1.5
+  },
+
+  "backdrop": {
+    "_material": "чорний мольтон клубу, розміри залежать від майданчика"
+  },
+
+  "canvas": {
+    "_about": "Пласкі фронтальний фасад для проєкту «Полотно». Кадр 16:9 = кадр проєктора на площині сітки.",
+    "resolution": [1920, 1080],
+    "width": 7.0,
+    "center_x": 0.0,
+    "bottom_y": 0.0
+  },
+
+  "props": {
+    "_about": "Склад пропсів не визначений. Мапимо тільки фронтальні грані.",
+    "zone_z": [0.0, 2.0],
+    "_item_schema": {
+      "name": "унікальна коротка назва, напр. prop_L1",
+      "x": "центр фронту від осі сцени",
+      "y": "низ фронту над планшетом (0 — стоїть на сцені)",
+      "width": "ширина фронту",
+      "height": "висота фронту",
+      "z": "фронтальна грань від краю сцени, у межах zone_z"
+    },
+    "items": []
+  },
+
+  "projectors": {
+    "count": 2,
+    "mode": "stack",
+    "lumens_ansi": [5000, 6000],
+    "throw_ratio": [1.2, 2.0],
+    "min_vertical_shift": 0.35,
+    "lens_height_from_floor": 4.0,
+    "lens_height_range": [3.5, 4.0],
+    "offset_from_axis": 2.0,
+    "distance_to_scrim": 12.5
+  },
+
+  "shadow_checks": {
+    "artist": { "height": 1.8, "distance_before_scrim": 1.5 },
+    "front_row_hands": { "height_from_floor": 2.3 }
+  }
+}
