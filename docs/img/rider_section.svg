@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="447" viewBox="0 0 1020 447">
+<rect width="1020" height="447" fill="#fff"/>
+<text x="16" y="26" font-family="Arial, sans-serif" font-size="17" font-weight="bold" fill="#222">LOVIXX · розріз по осі сцени</text>
+<text x="16" y="435" font-family="Arial, sans-serif" font-size="12" fill="#555">Розміри в метрах. Схема в масштабі, 1 клітинка = 1 м.</text>
+<g stroke="#eef0f2" stroke-width="1"><line x1="60" y1="60" x2="60" y2="336.875"/><line x1="110" y1="60" x2="110" y2="336.875"/><line x1="160" y1="60" x2="160" y2="336.875"/><line x1="210" y1="60" x2="210" y2="336.875"/><line x1="260" y1="60" x2="260" y2="336.875"/><line x1="310" y1="60" x2="310" y2="336.875"/><line x1="360" y1="60" x2="360" y2="336.875"/><line x1="410" y1="60" x2="410" y2="336.875"/><line x1="460" y1="60" x2="460" y2="336.875"/><line x1="510" y1="60" x2="510" y2="336.875"/><line x1="560" y1="60" x2="560" y2="336.875"/><line x1="610" y1="60" x2="610" y2="336.875"/><line x1="660" y1="60" x2="660" y2="336.875"/><line x1="710" y1="60" x2="710" y2="336.875"/><line x1="760" y1="60" x2="760" y2="336.875"/><line x1="810" y1="60" x2="810" y2="336.875"/><line x1="860" y1="60" x2="860" y2="336.875"/><line x1="60" y1="60" x2="899.9999999999999" y2="60"/><line x1="60" y1="110" x2="899.9999999999999" y2="110"/><line x1="60" y1="160" x2="899.9999999999999" y2="160"/><line x1="60" y1="210" x2="899.9999999999999" y2="210"/><line x1="60" y1="260" x2="899.9999999999999" y2="260"/><line x1="60" y1="310" x2="899.9999999999999" y2="310"/></g>
+<line x1="60" y1="336.875" x2="899.9999999999999" y2="336.875" stroke="#222" stroke-width="2"/>
+<rect x="620" y="296.875" width="250" height="40" fill="#d9dde1" stroke="#222" stroke-width="2"/>
+<line x1="873" y1="296.875" x2="873" y2="91.875" stroke="#000" stroke-width="5"/>
+<polygon points="119.99999999999997,136.875 745,296.875 745,100" fill="#1f8fb0" fill-opacity="0.07" stroke="#1f8fb0" stroke-opacity="0.6" stroke-dasharray="6 5"/>
+<line x1="745" y1="296.875" x2="745" y2="121.875" stroke="#1f8fb0" stroke-width="5"/>
+<text x="753" y="125.875" font-family="Arial, sans-serif" font-size="13" fill="#1f8fb0">сітка</text>
+<rect x="664" y="206.87499999999997" width="12" height="90" rx="6" fill="#9aa3ab"/>
+<text x="670" y="198.87499999999997" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#222">артист</text>
+<rect x="620" y="293.875" width="100" height="3" fill="#e07a2a"/>
+<text x="670" y="312.875" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#a0521a">пропси</text>
+<line x1="590" y1="336.875" x2="590" y2="251.87499999999997" stroke="#c4cad0" stroke-width="8" stroke-linecap="round"/>
+<line x1="530" y1="336.875" x2="530" y2="251.87499999999997" stroke="#c4cad0" stroke-width="8" stroke-linecap="round"/>
+<line x1="469.99999999999994" y1="336.875" x2="469.99999999999994" y2="251.87499999999997" stroke="#c4cad0" stroke-width="8" stroke-linecap="round"/>
+<line x1="409.99999999999994" y1="336.875" x2="409.99999999999994" y2="251.87499999999997" stroke="#c4cad0" stroke-width="8" stroke-linecap="round"/>
+<line x1="349.99999999999994" y1="336.875" x2="349.99999999999994" y2="251.87499999999997" stroke="#c4cad0" stroke-width="8" stroke-linecap="round"/>
+<line x1="289.99999999999994" y1="336.875" x2="289.99999999999994" y2="251.87499999999997" stroke="#c4cad0" stroke-width="8" stroke-linecap="round"/>
+<line x1="229.99999999999994" y1="336.875" x2="229.99999999999994" y2="251.87499999999997" stroke="#c4cad0" stroke-width="8" stroke-linecap="round"/>
+<line x1="596" y1="266.875" x2="596" y2="221.875" stroke="#aab2ba" stroke-width="4" stroke-linecap="round"/>
+<text x="586" y="215.875" font-family="Arial, sans-serif" font-size="12" text-anchor="end" fill="#555">руки 2.3 м</text>
+<line x1="119.99999999999997" y1="336.875" x2="119.99999999999997" y2="136.875" stroke="#222" stroke-width="2"/>
+<rect x="105.99999999999997" y="127.875" width="28" height="18" fill="#e07a2a"/>
+<g stroke="#555" stroke-width="1.2" fill="#555" font-family="Arial, sans-serif" font-size="13"><line x1="89.99999999999997" y1="336.875" x2="89.99999999999997" y2="136.875"/><line x1="84.99999999999997" y1="336.875" x2="94.99999999999997" y2="336.875"/><line x1="84.99999999999997" y1="136.875" x2="94.99999999999997" y2="136.875"/><g stroke="none"><text x="81.99999999999997" y="240.875" text-anchor="end">4 м</text></g></g>
+<g stroke="#555" stroke-width="1.2" fill="#555" font-family="Arial, sans-serif" font-size="13"><line x1="608" y1="336.875" x2="608" y2="296.875"/><line x1="603" y1="336.875" x2="613" y2="336.875"/><line x1="603" y1="296.875" x2="613" y2="296.875"/><g stroke="none"><text x="600" y="320.875" text-anchor="end">0.8</text></g></g>
+<g stroke="#555" stroke-width="1.2" fill="#555" font-family="Arial, sans-serif" font-size="13"><line x1="785" y1="296.875" x2="785" y2="121.875"/><line x1="780" y1="296.875" x2="790" y2="296.875"/><line x1="780" y1="121.875" x2="790" y2="121.875"/><g stroke="none"><text x="793" y="213.375" text-anchor="start">3.5 м</text></g></g>
+<g stroke="#555" stroke-width="1.2" fill="#555" font-family="Arial, sans-serif" font-size="13"><line x1="119.99999999999997" y1="362.875" x2="620" y2="362.875"/><line x1="119.99999999999997" y1="357.875" x2="119.99999999999997" y2="367.875"/><line x1="620" y1="357.875" x2="620" y2="367.875"/><g stroke="none"><text x="370" y="378.875" text-anchor="middle">10 м</text></g></g>
+<g stroke="#555" stroke-width="1.2" fill="#555" font-family="Arial, sans-serif" font-size="13"><line x1="620" y1="362.875" x2="745" y2="362.875"/><line x1="620" y1="357.875" x2="620" y2="367.875"/><line x1="745" y1="357.875" x2="745" y2="367.875"/><g stroke="none"><text x="682.5" y="378.875" text-anchor="middle">2.5</text></g></g>
+<g stroke="#555" stroke-width="1.2" fill="#555" font-family="Arial, sans-serif" font-size="13"><line x1="119.99999999999997" y1="390.875" x2="745" y2="390.875"/><line x1="119.99999999999997" y1="385.875" x2="119.99999999999997" y2="395.875"/><line x1="745" y1="385.875" x2="745" y2="395.875"/><g stroke="none"><text x="432.5" y="406.875" text-anchor="middle">лінза → сітка 12.5 м</text></g></g>
+<text x="369.99999999999994" y="243.875" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#555">ЗАЛА</text>
+</svg>

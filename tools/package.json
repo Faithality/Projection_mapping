@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "guides": "node make_guides.js",
-    "optics": "node optics.js"
+    "optics": "node optics.js",
+    "diagrams": "node make_rider_diagrams.js"
   },
   "dependencies": {
     "@resvg/resvg-js": "2.6.2"
