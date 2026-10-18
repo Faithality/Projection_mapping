@@ -56,6 +56,9 @@ dd[data-s="bad"] { color: var(--bad); }
 .legend { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 12px; color: var(--muted); align-items: center; }
 .sw { width: 18px; height: 4px; border-radius: 2px; }
 .err { color: var(--bad); font-size: 13px; }
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.dim { font: 500 11px var(--mono); color: var(--fg); background: rgba(10, 13, 17, 0.85); border: 1px solid rgba(76, 195, 227, 0.6); border-radius: 4px; padding: 2px 5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dim.prop { border-color: rgba(242, 128, 46, 0.7); }
 .media { display: flex; flex-wrap: wrap; gap: 6px; }
 .media button, .filebtn { font: 500 13px var(--body); color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; cursor: pointer; }
 .filebtn { border-color: var(--cyan); color: var(--cyan); }
@@ -137,6 +140,7 @@ code { font: 12px var(--mono); color: var(--fg); }
         <label class="chip"><input type="checkbox" id="haze" checked> Промені</label>
         <label class="chip"><input type="checkbox" id="crowd" checked> Зал</label>
         <label class="chip"><input type="checkbox" id="props" checked> Пропси</label>
+        <label class="chip"><input type="checkbox" id="dims" checked> Розміри</label>
         <label class="chip"><input type="checkbox" id="white"> Тест: біле поле</label>
       </div>
     </section>
@@ -204,8 +208,9 @@ code { font: 12px var(--mono); color: var(--fg); }
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-const S = { D: 12.5, H: 4, off: 2, Y: 2.5, p1: true, p2: true, haze: true, crowd: true, props: true, white: false };
+const S = { D: 12.5, H: 4, off: 2, Y: 2.5, p1: true, p2: true, haze: true, crowd: true, props: true, dims: true, white: false };
 const STAGE_H = 0.8, STAGE_W = 8, STAGE_D = 5;
 const SCRIM_W = 7, SCRIM_H = 3.5;
 const IMG_W = 7, IMG_H = 7 * 9 / 16;
@@ -330,6 +335,7 @@ function buildProps() {
       props.add(e);
     }
   });
+  updateDims();
 }
 
 const contra = new THREE.SpotLight(0xffb35a, 6, 0, 0.62, 0.6, 0);
@@ -417,6 +423,60 @@ function projector(color) {
 }
 const P = [projector(0xF2802E), projector(0xF2802E)];
 
+// ---- Розмірні лінії з підписами (HTML поверх 3D, видно з будь-якого ракурсу).
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.className = 'labels';
+view.insertBefore(labelRenderer.domElement, view.querySelector('.views'));
+const dimMat = new THREE.LineBasicMaterial({ color: 0x9fdcef, transparent: true, opacity: 0.85, depthTest: false });
+function makeDim(cls) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(18), 3));
+  const line = new THREE.LineSegments(geo, dimMat);
+  line.renderOrder = 10;
+  line.frustumCulled = false;
+  const el = document.createElement('div');
+  el.className = 'dim' + (cls ? ' ' + cls : '');
+  const label = new CSS2DObject(el);
+  scene.add(line, label);
+  return { line, label, el };
+}
+// Відрізок a→b з засічками вздовж tick (одиничний вектор) і підписом посередині.
+function setDim(d, a, b, tick, text, on) {
+  const t = tick.clone().multiplyScalar(0.12);
+  const pts = [a, b, a.clone().sub(t), a.clone().add(t), b.clone().sub(t), b.clone().add(t)];
+  const arr = d.line.geometry.attributes.position.array;
+  pts.forEach((p, i) => { arr[i * 3] = p.x; arr[i * 3 + 1] = p.y; arr[i * 3 + 2] = p.z; });
+  d.line.geometry.attributes.position.needsUpdate = true;
+  d.label.position.copy(a).add(b).multiplyScalar(0.5);
+  d.el.textContent = text;
+  d.line.visible = d.label.visible = on;
+}
+const DIMS = { toEdge: makeDim(), toScrim: makeDim(), dist: makeDim(), lensH: makeDim(), spread: makeDim(), scrimW: makeDim(), scrimH: makeDim(), stageH: makeDim() };
+const propLabel = new CSS2DObject(Object.assign(document.createElement('div'), { className: 'dim prop' }));
+scene.add(propLabel);
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const AX = V(1, 0, 0), AY = V(0, 1, 0), AZ = V(0, 0, 1);
+function updateDims() {
+  const { D, H, off, Y } = S;
+  const on = S.dims, PZ = Y - D, side = wx(STAGE_W / 2 + 0.6);
+  setDim(DIMS.toEdge, V(side, 0.03, PZ), V(side, 0.03, 0), AX, fmt(D - Y) + ' м до краю сцени', on);
+  setDim(DIMS.toScrim, V(side, STAGE_H + 0.03, 0), V(side, STAGE_H + 0.03, Y), AX, fmt(Y) + ' м', on);
+  const top = Math.max(H, STAGE_H + IMG_H) + 0.6;
+  setDim(DIMS.dist, V(0, top, PZ), V(0, top, Y), AY, 'лінза → сітка ' + fmt(D) + ' м', on);
+  const lx = wx(-off - 0.45);
+  setDim(DIMS.lensH, V(lx, 0, PZ), V(lx, H, PZ), AX, 'лінза ' + fmt(H) + ' м', on);
+  setDim(DIMS.spread, V(wx(-off), H + 0.45, PZ), V(wx(off), H + 0.45, PZ), AY, fmt(2 * off) + ' м', on && off > 0);
+  setDim(DIMS.scrimW, V(wx(-SCRIM_W / 2), STAGE_H + SCRIM_H + 0.25, Y), V(wx(SCRIM_W / 2), STAGE_H + SCRIM_H + 0.25, Y), AY, 'сітка ' + fmt(SCRIM_W) + ' м', on);
+  setDim(DIMS.scrimH, V(wx(SCRIM_W / 2 + 0.25), STAGE_H, Y), V(wx(SCRIM_W / 2 + 0.25), STAGE_H + SCRIM_H, Y), AX, fmt(SCRIM_H) + ' м', on);
+  setDim(DIMS.stageH, V(wx(-STAGE_W / 2 - 0.3), 0, 0), V(wx(-STAGE_W / 2 - 0.3), STAGE_H, 0), AZ, 'сцена ' + fmt(STAGE_H) + ' м', on);
+  const p = typeof sel === 'number' && sel >= 0 ? PR[sel] : null;
+  propLabel.visible = !!(on && S.props && p);
+  if (p) {
+    propLabel.position.set(wx(p.x), STAGE_H + p.y + p.height + 0.15, p.z);
+    propLabel.element.textContent = `${p.name} ${fmt(p.width, 2)} × ${fmt(p.height, 2)} м · фронт ${fmt(p.z, 2)} м`;
+  }
+}
+
 function setBeam(p, lens, Y) {
   const c = [[-IMG_W / 2, STAGE_H], [IMG_W / 2, STAGE_H], [IMG_W / 2, STAGE_H + IMG_H], [-IMG_W / 2, STAGE_H + IMG_H]].map(([x, y]) => new THREE.Vector3(x, y, Y));
   const a = p.beam.geometry.attributes.position.array;
@@ -490,6 +550,7 @@ function update() {
 
   props.visible = S.props;
   renderProps(); // попередження залежать від D, H, розведення і Y
+  updateDims();
 
   $('d-o').textContent = fmt(D) + ' м';
   $('h-o').textContent = fmt(H) + ' м';
@@ -516,7 +577,14 @@ function update() {
 
 const VIEWS = {
   hall: () => [new THREE.Vector3(0, 1.7, -9), new THREE.Vector3(0, 2.4, S.Y)],
-  side: () => [new THREE.Vector3(15, 6, (S.Y - S.D) / 2 + 1), new THREE.Vector3(0, 2, (S.Y - S.D) / 2 + 1)],
+  side: () => {
+    // Відсунути камеру так, щоб від проєкторів до задника все влізло по ширині вікна.
+    const span = S.D - S.Y + STAGE_D + 3;
+    const hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+    const dist = Math.max(15, span / 2 / Math.tan(hfov / 2));
+    const cz = (S.Y - S.D + STAGE_D) / 2;
+    return [new THREE.Vector3(dist, 2 + dist * 0.27, cz), new THREE.Vector3(0, 2, cz)];
+  },
   top: () => [new THREE.Vector3(0.01, 28, (S.Y - S.D) / 2 + 1), new THREE.Vector3(0, 0, (S.Y - S.D) / 2 + 1)],
   proj: () => [new THREE.Vector3(wx(-S.off), S.H, S.Y - S.D + 0.3), new THREE.Vector3(0, IMG_CY, S.Y)]
 };
@@ -538,7 +606,7 @@ function setView(name) {
     if (current === 'proj') setView('proj');
   });
 });
-['p1', 'p2', 'haze', 'crowd', 'props', 'white'].forEach(id => {
+['p1', 'p2', 'haze', 'crowd', 'props', 'dims', 'white'].forEach(id => {
   $(id).addEventListener('change', e => { S[id] = e.target.checked; update(); drawContent(time); map.needsUpdate = true; });
 });
 
@@ -840,6 +908,7 @@ function resize() {
   const w = view.clientWidth, h = view.clientHeight;
   if (!w || !h) return;
   renderer.setSize(w, h, false);
+  labelRenderer.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 }
@@ -853,6 +922,7 @@ function loop(now) {
   map.needsUpdate = true;
   controls.update();
   renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
 
