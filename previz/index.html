@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LOVIXX Previz</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>body{margin:0}</style>
+<style>
+/* Layout: one-screen tool — 3D stage viewport fills the left, a narrow rig sheet on the right (stacks under the view on phones). Single dark look: it is a blacked-out venue. */
+:root {
+  --bg: #0A0D11;
+  --panel: #10151B;
+  --line: #222B35;
+  --fg: #E6ECF1;
+  --muted: #8494A3;
+  --cyan: #4CC3E3;
+  --amber: #F2802E;
+  --bad: #E2584A;
+  --ok: #5FC48A;
+  --display: 'Oswald', 'Arial Narrow', Arial, sans-serif;
+  --body: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 14px; }
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 360px; }
+.view { position: relative; min-width: 0; min-height: 0; background: var(--bg); }
+.view canvas { display: block; width: 100%; height: 100%; }
+.views { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.views button { font: 500 13px var(--body); color: var(--fg); background: rgba(16, 21, 27, 0.82); border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; cursor: pointer; }
+.views button[aria-pressed="true"] { border-color: var(--cyan); color: var(--cyan); }
+.views button:focus-visible, .chip:focus-within, input[type=range]:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.note { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: 12px; right: 12px; font: 12px var(--mono); color: var(--muted); pointer-events: none; }
+aside { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding-block: 22px 28px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; }
+h1 { font: 600 26px/1.1 var(--display); letter-spacing: 0.5px; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 6px 0 0; }
+h2 { font: 500 12px var(--body); letter-spacing: 1.6px; text-transform: uppercase; color: var(--cyan); margin: 0 0 12px; }
+.ctl { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.ctl label { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.ctl output { font: 500 13px var(--mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--cyan); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; user-select: none; }
+.chip input { accent-color: var(--amber); margin: 0; }
+dl { margin: 0; display: grid; grid-template-columns: 1fr auto; border-top: 1px solid var(--line); }
+dt, dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+dt { color: var(--muted); }
+dd { font: 500 13px var(--mono); text-align: right; font-variant-numeric: tabular-nums; padding-left: 12px; }
+dd[data-s="ok"] { color: var(--ok); }
+dd[data-s="warn"] { color: var(--amber); }
+dd[data-s="bad"] { color: var(--bad); }
+.legend { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 12px; color: var(--muted); align-items: center; }
+.sw { width: 18px; height: 4px; border-radius: 2px; }
+.err { color: var(--bad); font-size: 13px; }
+@media (max-width: 820px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: 58vh auto; height: auto; min-height: 100%; }
+  aside { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="view" id="view">
+    <div class="views" role="group" aria-label="Ракурс камери">
+      <button type="button" id="v-hall" aria-pressed="true">Із залу</button>
+      <button type="button" id="v-side" aria-pressed="false">Збоку</button>
+      <button type="button" id="v-top" aria-pressed="false">Зверху</button>
+      <button type="button" id="v-proj" aria-pressed="false">З проєктора</button>
+    </div>
+    <p class="note" id="note">Схема в метрах · тягни мишею, щоб обертати · колесо — зум</p>
+  </div>
+
+  <aside>
+    <header>
+      <h1>LOVIXX · превіз проєкції</h1>
+      <p class="sub">Сцена 8 × 5 м, сітка 7 × 3.5 м, два проєктори по 6000 ANSI лм у stack. Кадр 16:9 шириною 7 м, низ кадру на рівні сцени.</p>
+    </header>
+
+    <section>
+      <h2>Проєктори</h2>
+      <div class="ctl"><label for="d">Відстань від лінзи до сітки <output id="d-o"></output></label><input type="range" id="d" min="7" max="15" step="0.1" value="12.5"></div>
+      <div class="ctl"><label for="h">Висота лінзи від підлоги зали <output id="h-o"></output></label><input type="range" id="h" min="3" max="7" step="0.1" value="4"></div>
+      <div class="ctl"><label for="off">Розведення від осі сцени <output id="off-o"></output></label><input type="range" id="off" min="0" max="3" step="0.1" value="2"></div>
+      <div class="ctl"><label for="y">Сітка від краю сцени <output id="y-o"></output></label><input type="range" id="y" min="2" max="3" step="0.1" value="2.5"></div>
+    </section>
+
+    <section>
+      <h2>Шари</h2>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" id="p1" checked> Проєктор Л</label>
+        <label class="chip"><input type="checkbox" id="p2" checked> Проєктор П</label>
+        <label class="chip"><input type="checkbox" id="haze" checked> Промені</label>
+        <label class="chip"><input type="checkbox" id="crowd" checked> Зал</label>
+        <label class="chip"><input type="checkbox" id="props" checked> Пропси (умовно)</label>
+        <label class="chip"><input type="checkbox" id="white"> Тест: біле поле</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Розрахунок</h2>
+      <dl>
+        <dt>Throw ratio (лінза 1.2–2.0)</dt><dd id="r-tr"></dd>
+        <dt>Від проєкторів до краю сцени</dt><dd id="r-edge"></dd>
+        <dt>Vertical lens shift</dt><dd id="r-shift"></dd>
+        <dt>Освітленість сітки</dt><dd id="r-lux"></dd>
+        <dt>Тінь артиста на сітці</dt><dd id="r-art"></dd>
+        <dt>Тінь рук першого ряду</dt><dd id="r-hands"></dd>
+        <dt>Тіні двох проєкторів</dt><dd id="r-fill"></dd>
+      </dl>
+      <p class="sub">Тіні — висота темної зони над сценою. Артист 1.8 м за 1.5 м перед сіткою, руки першого ряду на 2.3 м біля краю сцени.</p>
+    </section>
+
+    <section>
+      <h2>Позначення</h2>
+      <div class="legend">
+        <span class="sw" style="background: var(--amber)"></span><span>Проєктори на стійках</span>
+        <span class="sw" style="background: var(--cyan)"></span><span>Межі кадру 16:9 і промені</span>
+        <span class="sw" style="background: #8A929B"></span><span>Сітка 7 × 3.5 м, чорний задник позаду</span>
+      </div>
+      <p class="sub">У превізі проєктори нахилені на центр кадру. В реальності — lens shift і warp у MadMapper.</p>
+    </section>
+  </aside>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const S = { D: 12.5, H: 4, off: 2, Y: 2.5, p1: true, p2: true, haze: true, crowd: true, props: true, white: false };
+const STAGE_H = 0.8, STAGE_W = 8, STAGE_D = 5;
+const SCRIM_W = 7, SCRIM_H = 3.5;
+const IMG_W = 7, IMG_H = 7 * 9 / 16;
+const IMG_CY = STAGE_H + IMG_H / 2;
+const R = Math.hypot(IMG_W / 2, IMG_H / 2);
+const LUMENS = 6000;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const view = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+view.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0A0D11);
+scene.fog = new THREE.FogExp2(0x0A0D11, 0.018);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.495;
+
+scene.add(new THREE.HemisphereLight(0x8090a0, 0x080a0c, 0.35));
+
+const std = (color, rough = 0.9) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0 });
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), std(0x0d1014));
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const stage = new THREE.Mesh(new THREE.BoxGeometry(STAGE_W, STAGE_H, STAGE_D), std(0x161b21));
+stage.position.set(0, STAGE_H / 2, STAGE_D / 2);
+stage.receiveShadow = true;
+scene.add(stage);
+
+const drape = new THREE.Mesh(new THREE.PlaneGeometry(STAGE_W, 4.6), std(0x050607, 1));
+drape.rotation.y = Math.PI;
+drape.position.set(0, STAGE_H + 2.3, STAGE_D);
+drape.receiveShadow = true;
+scene.add(drape);
+
+const scrim = new THREE.Mesh(
+  new THREE.PlaneGeometry(SCRIM_W, SCRIM_H),
+  new THREE.MeshStandardMaterial({ color: 0x8a929b, roughness: 1, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })
+);
+scrim.receiveShadow = true;
+scene.add(scrim);
+
+const frameLine = new THREE.LineLoop(
+  new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-IMG_W / 2, STAGE_H, 0), new THREE.Vector3(IMG_W / 2, STAGE_H, 0),
+    new THREE.Vector3(IMG_W / 2, STAGE_H + IMG_H, 0), new THREE.Vector3(-IMG_W / 2, STAGE_H + IMG_H, 0)
+  ]),
+  new THREE.LineBasicMaterial({ color: 0x4CC3E3, transparent: true, opacity: 0.55 })
+);
+scene.add(frameLine);
+
+function person(color, h = 1.8) {
+  const g = new THREE.Group();
+  const m = std(color, 0.8);
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.21, h - 0.66, 4, 10), m);
+  body.position.y = (h - 0.26) / 2;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 12), m);
+  head.position.y = h - 0.12;
+  [body, head].forEach(o => { o.castShadow = true; o.receiveShadow = true; g.add(o); });
+  return g;
+}
+
+const artists = [person(0xc9d1d8), person(0xaab3bb), person(0xaab3bb)];
+artists.forEach(a => scene.add(a));
+
+const band = new THREE.Group();
+const drummer = person(0x7e8d99, 1.3);
+const kit = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.5, 20), std(0x3a4652, 0.6));
+const keys = person(0x7e8d99, 1.75);
+const keyStand = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.35), std(0x2a3540));
+const bass = person(0x7e8d99, 1.8);
+const riser = new THREE.Mesh(new THREE.BoxGeometry(2, 0.3, 1.5), std(0x1d242c));
+band.add(drummer, kit, keys, keyStand, bass, riser);
+band.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+scene.add(band);
+
+const props = new THREE.Group();
+[[-2.4, 0.3], [-1.8, 0.3], [-2.1, 0.9], [0, 0.3], [2.1, 0.3]].forEach(([x, y]) => {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), std(0xe8edf0, 0.95));
+  b.position.set(x, STAGE_H + y, 0.45);
+  b.castShadow = true; b.receiveShadow = true;
+  props.add(b);
+});
+scene.add(props);
+
+const contra = new THREE.SpotLight(0xffb35a, 6, 0, 0.62, 0.6, 0);
+contra.position.set(0, STAGE_H + 4, 4.8);
+scene.add(contra, contra.target);
+const sideL = new THREE.SpotLight(0xdfe8ff, 2.2, 0, 0.22, 0.5, 0);
+const sideR = sideL.clone();
+scene.add(sideL, sideL.target, sideR, sideR.target);
+
+const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+const crowd = [];
+for (let z = -0.9; z > -11; z -= 0.62) {
+  for (let x = -6; x <= 6; x += 0.58) {
+    if (rnd() < 0.12) continue;
+    crowd.push({ x: x + (rnd() - 0.5) * 0.3, z: z + (rnd() - 0.5) * 0.3, h: 1.6 + rnd() * 0.3, arm: rnd() < (z > -4 ? 0.45 : 0.2) });
+  }
+}
+const cMat = std(0x1b2129, 1);
+const bodyI = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.2, 1, 3, 8), cMat, crowd.length);
+const headI = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 10, 8), cMat, crowd.length);
+const armI = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05, 0.05, 0.62, 6), cMat, crowd.length);
+[bodyI, headI, armI].forEach(m => { m.castShadow = true; scene.add(m); });
+const tmp = new THREE.Object3D();
+
+const tex = document.createElement('canvas');
+tex.width = tex.height = 1024;
+const ctx = tex.getContext('2d');
+const map = new THREE.CanvasTexture(tex);
+map.colorSpace = THREE.SRGBColorSpace;
+
+function drawContent(t) {
+  const N = tex.width;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, N, N);
+  const w = N * (IMG_W / 2) / R, h = N * (IMG_H / 2) / R;
+  const x0 = N / 2 - w / 2, y0 = N / 2 - h / 2;
+  if (S.white) { ctx.fillStyle = '#fff'; ctx.fillRect(x0, y0, w, h); return; }
+  const V = v => y0 + v * h;
+  const U = u => x0 + u * w;
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#4CC3E3';
+  for (let i = 0; i < 9; i++) {
+    const u = (i + 0.5) / 9;
+    ctx.beginPath(); ctx.moveTo(U(u), V(0.14)); ctx.lineTo(U(u), V(0.58)); ctx.stroke();
+  }
+  const scan = 0.14 + ((t * 0.12) % 1) * 0.44;
+  ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.moveTo(U(0), V(scan)); ctx.lineTo(U(1), V(scan)); ctx.stroke();
+  ctx.strokeStyle = '#F2802E';
+  ctx.lineWidth = 9;
+  const cx = U(0.5), cy = V(0.34), ew = w * 0.17, eh = h * 0.11;
+  ctx.beginPath(); ctx.moveTo(cx - ew, cy); ctx.quadraticCurveTo(cx, cy - eh * 2, cx + ew, cy); ctx.quadraticCurveTo(cx, cy + eh * 2, cx - ew, cy); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, eh * 0.8, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = 'rgba(242,128,46,0.75)';
+  ctx.fillRect(U(0.12), V(0.88), w * 0.2, h * 0.12);
+  ctx.fillRect(U(0.45), V(0.88), w * 0.1, h * 0.12);
+  ctx.fillRect(U(0.7), V(0.88), w * 0.12, h * 0.12);
+}
+
+function projector(color) {
+  const g = new THREE.Group();
+  const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1, 8), std(0x9aa6b1, 0.5));
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.04, 3), std(0x9aa6b1, 0.5));
+  base.position.y = 0.02;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.22, 0.5), std(color, 0.4));
+  g.add(stand, base, body);
+  const spot = new THREE.SpotLight(0xffffff, 3.2, 0, 0.3, 0.02, 0);
+  spot.map = map;
+  spot.castShadow = true;
+  spot.shadow.mapSize.set(2048, 2048);
+  spot.shadow.camera.near = 0.5;
+  spot.shadow.camera.far = 40;
+  spot.shadow.bias = -0.0004;
+  scene.add(spot, spot.target);
+  const beamGeo = new THREE.BufferGeometry();
+  beamGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(36), 3));
+  const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0x4CC3E3, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  const edgeGeo = new THREE.BufferGeometry();
+  edgeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(24), 3));
+  const edges = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: 0x4CC3E3, transparent: true, opacity: 0.35 }));
+  scene.add(g, beam, edges);
+  return { g, stand, body, spot, beam, edges };
+}
+const P = [projector(0xF2802E), projector(0xF2802E)];
+
+function setBeam(p, lens, Y) {
+  const c = [[-IMG_W / 2, STAGE_H], [IMG_W / 2, STAGE_H], [IMG_W / 2, STAGE_H + IMG_H], [-IMG_W / 2, STAGE_H + IMG_H]].map(([x, y]) => new THREE.Vector3(x, y, Y));
+  const a = p.beam.geometry.attributes.position.array;
+  let i = 0;
+  for (let k = 0; k < 4; k++) {
+    const q = [lens, c[k], c[(k + 1) % 4]];
+    q.forEach(v => { a[i++] = v.x; a[i++] = v.y; a[i++] = v.z; });
+  }
+  p.beam.geometry.attributes.position.needsUpdate = true;
+  p.beam.geometry.computeBoundingSphere();
+  const e = p.edges.geometry.attributes.position.array;
+  i = 0;
+  c.forEach(v => { e[i++] = lens.x; e[i++] = lens.y; e[i++] = lens.z; e[i++] = v.x; e[i++] = v.y; e[i++] = v.z; });
+  p.edges.geometry.attributes.position.needsUpdate = true;
+  p.edges.geometry.computeBoundingSphere();
+}
+
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 1) => n.toFixed(d).replace('.', ',');
+function out(id, text, s) { const el = $(id); el.textContent = text; if (s) el.dataset.s = s; else delete el.dataset.s; }
+
+function update() {
+  const { D, H, off, Y } = S;
+  scrim.position.set(0, STAGE_H + SCRIM_H / 2, Y);
+  frameLine.position.z = Y;
+  const az = Math.max(0.3, Y - 1.5);
+  artists[0].position.set(0, STAGE_H, az);
+  artists[1].position.set(-1.6, STAGE_H, az + 0.2);
+  artists[2].position.set(1.6, STAGE_H, az + 0.2);
+  const bz = Math.min(Y + 1.3, 4.3);
+  riser.position.set(0, STAGE_H + 0.15, bz);
+  drummer.position.set(0, STAGE_H + 0.3, bz + 0.3);
+  kit.position.set(0, STAGE_H + 0.55, bz - 0.25);
+  keys.position.set(-2.4, STAGE_H, bz - 0.1);
+  keyStand.position.set(-2.4, STAGE_H + 0.95, bz - 0.5);
+  bass.position.set(2.4, STAGE_H, bz - 0.1);
+  contra.target.position.set(0, STAGE_H, bz);
+  sideL.position.set(-6, 5.5, az); sideL.target.position.set(-0.4, STAGE_H + 1.2, az);
+  sideR.position.set(6, 5.5, az); sideR.target.position.set(0.4, STAGE_H + 1.2, az);
+
+  const on = [S.p1, S.p2];
+  const target = new THREE.Vector3(0, IMG_CY, Y);
+  P.forEach((p, i) => {
+    const x = i === 0 ? -off : off;
+    const lens = new THREE.Vector3(x, H, Y - D);
+    p.g.position.set(x, 0, Y - D);
+    p.stand.scale.y = H - 0.12; p.stand.position.y = (H - 0.12) / 2;
+    p.body.position.y = H;
+    p.spot.position.copy(lens);
+    p.spot.target.position.copy(target);
+    p.spot.angle = Math.atan(R / lens.distanceTo(target));
+    p.spot.visible = on[i];
+    p.beam.visible = on[i] && S.haze;
+    p.edges.visible = on[i] && S.haze;
+    setBeam(p, lens, Y);
+  });
+
+  bodyI.visible = headI.visible = armI.visible = S.crowd;
+  const stands = P.map((p, i) => [i === 0 ? -off : off, Y - D]);
+  crowd.forEach((c, i) => {
+    const near = stands.some(([sx, sz]) => Math.hypot(c.x - sx, c.z - sz) < 1.1);
+    const k = near ? 0.0001 : 1;
+    tmp.rotation.set(0, 0, 0);
+    tmp.scale.setScalar(k);
+    tmp.position.set(c.x, (c.h - 0.24) / 2, c.z); tmp.updateMatrix(); bodyI.setMatrixAt(i, tmp.matrix);
+    tmp.position.set(c.x, c.h - 0.12, c.z); tmp.updateMatrix(); headI.setMatrixAt(i, tmp.matrix);
+    tmp.scale.setScalar(c.arm ? k : 0.0001);
+    tmp.position.set(c.x + 0.24, c.h - 0.02, c.z); tmp.updateMatrix(); armI.setMatrixAt(i, tmp.matrix);
+  });
+  bodyI.instanceMatrix.needsUpdate = headI.instanceMatrix.needsUpdate = armI.instanceMatrix.needsUpdate = true;
+
+  props.visible = S.props;
+
+  $('d-o').textContent = fmt(D) + ' м';
+  $('h-o').textContent = fmt(H) + ' м';
+  $('off-o').textContent = '±' + fmt(off) + ' м';
+  $('y-o').textContent = fmt(Y) + ' м';
+
+  const tr = D / IMG_W;
+  out('r-tr', fmt(tr, 2), tr >= 1.2 && tr <= 2.0 ? 'ok' : 'bad');
+  out('r-edge', fmt(D - Y) + ' м');
+  const shift = (H - IMG_CY) / IMG_H;
+  out('r-shift', Math.round(shift * 100) + '%', shift <= 0.35 ? 'ok' : shift <= 0.6 ? 'warn' : 'bad');
+  const n = (S.p1 ? 1 : 0) + (S.p2 ? 1 : 0);
+  const lux = n * LUMENS / (IMG_W * IMG_H);
+  out('r-lux', n ? '≈ ' + Math.round(lux) + ' lux' : 'вимкнено', n === 2 ? 'ok' : n === 1 ? 'warn' : 'bad');
+  const art = H + (STAGE_H + 1.8 - H) * D / (D - 1.5) - STAGE_H;
+  out('r-art', 'до ' + fmt(Math.max(0, art)) + ' м', art <= 1.7 ? 'ok' : 'warn');
+  const hands = H + (2.3 - H) * D / (D - Y) - STAGE_H;
+  out('r-hands', hands > 0 ? 'до ' + fmt(hands) + ' м' : 'немає', hands <= 0.8 ? 'ok' : 'warn');
+  const sep = 2 * off * 1.5 / (D - 1.5);
+  if (n < 2) out('r-fill', 'чорні, один проєктор', 'bad');
+  else if (sep >= 0.45) out('r-fill', 'напівтіні', 'ok');
+  else out('r-fill', 'накладаються', 'warn');
+}
+
+const VIEWS = {
+  hall: () => [new THREE.Vector3(0, 1.7, -9), new THREE.Vector3(0, 2.4, S.Y)],
+  side: () => [new THREE.Vector3(15, 6, (S.Y - S.D) / 2 + 1), new THREE.Vector3(0, 2, (S.Y - S.D) / 2 + 1)],
+  top: () => [new THREE.Vector3(0.01, 28, (S.Y - S.D) / 2 + 1), new THREE.Vector3(0, 0, (S.Y - S.D) / 2 + 1)],
+  proj: () => [new THREE.Vector3(-S.off, S.H, S.Y - S.D + 0.3), new THREE.Vector3(0, IMG_CY, S.Y)]
+};
+let current = 'hall';
+function setView(name) {
+  current = name;
+  const [pos, look] = VIEWS[name]();
+  camera.position.copy(pos);
+  controls.target.copy(look);
+  controls.update();
+  document.querySelectorAll('.views button').forEach(b => b.setAttribute('aria-pressed', b.id === 'v-' + name ? 'true' : 'false'));
+}
+['hall', 'side', 'top', 'proj'].forEach(n => $('v-' + n).addEventListener('click', () => setView(n)));
+
+['d', 'h', 'off', 'y'].forEach(id => {
+  $(id).addEventListener('input', e => {
+    S[id === 'd' ? 'D' : id === 'h' ? 'H' : id === 'y' ? 'Y' : 'off'] = parseFloat(e.target.value);
+    update();
+    if (current === 'proj') setView('proj');
+  });
+});
+['p1', 'p2', 'haze', 'crowd', 'props', 'white'].forEach(id => {
+  $(id).addEventListener('change', e => { S[id] = e.target.checked; update(); drawContent(time); map.needsUpdate = true; });
+});
+
+function resize() {
+  const w = view.clientWidth, h = view.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(view);
+
+let time = 0, last = performance.now();
+function loop(now) {
+  const dt = (now - last) / 1000; last = now;
+  if (!reduce) time += dt;
+  drawContent(time);
+  map.needsUpdate = true;
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+update();
+setView('hall');
+resize();
+requestAnimationFrame(loop);
+</script>
+<script>
+setTimeout(() => {
+  if (!document.querySelector('#view canvas')) {
+    const n = document.getElementById('note');
+    n.className = 'note err';
+    n.textContent = '3D не завантажився. Онови сторінку; якщо не допомогло, браузер не підтримує WebGL.';
+  }
+}, 6000);
+</script>
+
+</body>
+</html>
