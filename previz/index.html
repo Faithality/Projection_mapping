@@ -63,6 +63,20 @@ dd[data-s="bad"] { color: var(--bad); }
 .filebtn:focus-within, .media button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .media [hidden] { display: none; }
 #media-info { overflow-wrap: anywhere; }
+.plist { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.plist button { font: 500 12px var(--mono); color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; cursor: pointer; }
+.plist button[aria-pressed="true"] { border-color: var(--cyan); color: var(--cyan); }
+.plist button[data-warn="1"]::after { content: ' !'; color: var(--amber); }
+.plist button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.pform { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; margin-bottom: 12px; }
+.pform label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.pform .wide { grid-column: 1 / -1; }
+.pform input { width: 100%; box-sizing: border-box; font: 500 13px var(--mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; min-width: 0; }
+.pform input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.pform[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
+.pwarn { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--amber); }
+.pwarn:empty { display: none; }
+code { font: 12px var(--mono); color: var(--fg); }
 #media-info[data-s="bad"] { color: var(--bad); }
 @media (max-width: 820px) {
   .app { grid-template-columns: 1fr; grid-template-rows: 58vh auto; height: auto; min-height: 100%; }
@@ -104,9 +118,32 @@ dd[data-s="bad"] { color: var(--bad); }
         <label class="chip"><input type="checkbox" id="p2" checked> Проєктор П</label>
         <label class="chip"><input type="checkbox" id="haze" checked> Промені</label>
         <label class="chip"><input type="checkbox" id="crowd" checked> Зал</label>
-        <label class="chip"><input type="checkbox" id="props" checked> Пропси (умовно)</label>
+        <label class="chip"><input type="checkbox" id="props" checked> Пропси</label>
         <label class="chip"><input type="checkbox" id="white"> Тест: біле поле</label>
       </div>
+    </section>
+
+    <section>
+      <h2>Пропси</h2>
+      <div class="plist" id="plist" role="group" aria-label="Вибір пропса"></div>
+      <div class="pform" id="pform">
+        <label class="wide">Назва <input type="text" id="pf-name" spellcheck="false"></label>
+        <label>x центру, м <input type="number" id="pf-x" step="0.05"></label>
+        <label>Низ над сценою, м <input type="number" id="pf-y" step="0.05" min="0"></label>
+        <label>Ширина, м <input type="number" id="pf-width" step="0.05" min="0.05"></label>
+        <label>Висота, м <input type="number" id="pf-height" step="0.05" min="0.05"></label>
+        <label>Фронт від краю, м <input type="number" id="pf-z" step="0.05"></label>
+        <label>Глибина, м <input type="number" id="pf-depth" step="0.05" min="0.05"></label>
+      </div>
+      <div class="media">
+        <button type="button" id="p-add">+ Додати</button>
+        <button type="button" id="p-del">Видалити</button>
+        <button type="button" id="p-export">Експорт JSON</button>
+        <label class="filebtn"><input type="file" id="p-import" accept=".json,application/json"> Імпорт JSON</label>
+      </div>
+      <ul class="pwarn" id="pwarn"></ul>
+      <p class="sub" id="pstatus" role="status"></p>
+      <p class="sub">x: від'ємний — ліворуч, як дивиться зал. Фронт — відстань фронтальної грані від краю сцени (зона 0–2 м). Експорт дає масив для <code>props.items</code> у <code>stage_config.json</code>; глибина потрібна лише превізу.</p>
     </section>
 
     <section>
@@ -238,14 +275,44 @@ band.add(drummer, kit, keys, keyStand, bass, riser);
 band.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 scene.add(band);
 
+// Координати як у config/stage_config.json: x від осі, від'ємний — ліворуч, як дивиться зал.
+// Камера «із залу» дивиться в +z, тож у світі three.js ліво залу — це +x.
+const wx = x => -x;
+
+// Пропси: формат props.items з конфігу + depth (тільки для превізу). y — низ, z — фронтальна грань.
+const PROPS_ZONE = [0, 2];
+const PROPS_DEFAULT = [
+  { name: 'prop_1', x: 2.4, y: 0, width: 0.6, height: 0.6, z: 0.15, depth: 0.6 },
+  { name: 'prop_2', x: 1.8, y: 0, width: 0.6, height: 0.6, z: 0.15, depth: 0.6 },
+  { name: 'prop_3', x: 2.1, y: 0.6, width: 0.6, height: 0.6, z: 0.15, depth: 0.6 },
+  { name: 'prop_4', x: 0, y: 0, width: 0.6, height: 0.6, z: 0.15, depth: 0.6 },
+  { name: 'prop_5', x: -2.1, y: 0, width: 0.6, height: 0.6, z: 0.15, depth: 0.6 }
+];
+const PROPS_KEY = 'lovixx-previz-props';
+let PR = PROPS_DEFAULT.map(p => ({ ...p }));
+try { const saved = JSON.parse(localStorage.getItem(PROPS_KEY)); if (Array.isArray(saved)) PR = saved; } catch (e) {}
+let sel = PR.length ? 0 : -1;
+
 const props = new THREE.Group();
-[[-2.4, 0.3], [-1.8, 0.3], [-2.1, 0.9], [0, 0.3], [2.1, 0.3]].forEach(([x, y]) => {
-  const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), std(0xe8edf0, 0.95));
-  b.position.set(x, STAGE_H + y, 0.45);
-  b.castShadow = true; b.receiveShadow = true;
-  props.add(b);
-});
 scene.add(props);
+const propMat = std(0xe8edf0, 0.95);
+const selMat = new THREE.LineBasicMaterial({ color: 0x4CC3E3 });
+function buildProps() {
+  props.children.slice().forEach(o => { props.remove(o); o.geometry.dispose(); });
+  PR.forEach((p, i) => {
+    const d = p.depth > 0 ? p.depth : 0.5;
+    const geo = new THREE.BoxGeometry(p.width, p.height, d);
+    const b = new THREE.Mesh(geo, propMat);
+    b.position.set(wx(p.x), STAGE_H + p.y + p.height / 2, p.z + d / 2);
+    b.castShadow = true; b.receiveShadow = true;
+    props.add(b);
+    if (i === sel) {
+      const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), selMat);
+      e.position.copy(b.position);
+      props.add(e);
+    }
+  });
+}
 
 const contra = new THREE.SpotLight(0xffb35a, 6, 0, 0.62, 0.6, 0);
 contra.position.set(0, STAGE_H + 4, 4.8);
@@ -375,7 +442,7 @@ function update() {
   const on = [S.p1, S.p2];
   const target = new THREE.Vector3(0, IMG_CY, Y);
   P.forEach((p, i) => {
-    const x = i === 0 ? -off : off;
+    const x = wx(i === 0 ? -off : off);
     const lens = new THREE.Vector3(x, H, Y - D);
     p.g.position.set(x, 0, Y - D);
     p.stand.scale.y = H - 0.12; p.stand.position.y = (H - 0.12) / 2;
@@ -390,7 +457,7 @@ function update() {
   });
 
   bodyI.visible = headI.visible = armI.visible = S.crowd;
-  const stands = P.map((p, i) => [i === 0 ? -off : off, Y - D]);
+  const stands = P.map((p, i) => [wx(i === 0 ? -off : off), Y - D]);
   crowd.forEach((c, i) => {
     const near = stands.some(([sx, sz]) => Math.hypot(c.x - sx, c.z - sz) < 1.1);
     const k = near ? 0.0001 : 1;
@@ -404,6 +471,7 @@ function update() {
   bodyI.instanceMatrix.needsUpdate = headI.instanceMatrix.needsUpdate = armI.instanceMatrix.needsUpdate = true;
 
   props.visible = S.props;
+  renderProps(); // попередження залежать від D, H, розведення і Y
 
   $('d-o').textContent = fmt(D) + ' м';
   $('h-o').textContent = fmt(H) + ' м';
@@ -432,7 +500,7 @@ const VIEWS = {
   hall: () => [new THREE.Vector3(0, 1.7, -9), new THREE.Vector3(0, 2.4, S.Y)],
   side: () => [new THREE.Vector3(15, 6, (S.Y - S.D) / 2 + 1), new THREE.Vector3(0, 2, (S.Y - S.D) / 2 + 1)],
   top: () => [new THREE.Vector3(0.01, 28, (S.Y - S.D) / 2 + 1), new THREE.Vector3(0, 0, (S.Y - S.D) / 2 + 1)],
-  proj: () => [new THREE.Vector3(-S.off, S.H, S.Y - S.D + 0.3), new THREE.Vector3(0, IMG_CY, S.Y)]
+  proj: () => [new THREE.Vector3(wx(-S.off), S.H, S.Y - S.D + 0.3), new THREE.Vector3(0, IMG_CY, S.Y)]
 };
 let current = 'hall';
 function setView(name) {
@@ -510,6 +578,123 @@ $('media').addEventListener('change', e => { const f = e.target.files[0]; if (f)
 $('media-play').addEventListener('click', () => { if (!media) return; if (media.el.paused) media.el.play().catch(() => {}); else media.el.pause(); });
 $('media-reset').addEventListener('click', clearMedia);
 mediaInfo(MEDIA_HINT);
+
+// ---- Редактор пропсів
+const PF = ['name', 'x', 'y', 'width', 'height', 'z', 'depth'];
+const r2 = n => Math.round(n * 1000) / 1000;
+function saveProps() { try { localStorage.setItem(PROPS_KEY, JSON.stringify(PR)); } catch (e) {} }
+function pstatus(text, bad) { const el = $('pstatus'); el.textContent = text; el.style.color = bad ? 'var(--bad)' : ''; }
+
+// Що бачать проєктори на площині фронту пропса (ті самі промені, що й у калькуляторі).
+function propWarnings(p) {
+  const { D, H, off, Y } = S;
+  const w = [];
+  if (p.z < PROPS_ZONE[0] || p.z > PROPS_ZONE[1]) w.push(`фронт на ${fmt(p.z, 2)} м — поза зоною пропсів ${PROPS_ZONE[0]}–${PROPS_ZONE[1]} м`);
+  if (p.z >= Y) { w.push('фронт за сіткою'); return w; }
+  const f = (p.z - (Y - D)) / D;
+  if (f <= 0) return w;
+  const span = cx => [cx + f * (-IMG_W / 2 - cx), cx + f * (IMG_W / 2 - cx)];
+  const [a, b] = [span(-off), span(off)];
+  const l = p.x - p.width / 2, r = p.x + p.width / 2;
+  if (l < Math.min(a[0], b[0]) || r > Math.max(a[1], b[1])) w.push(`виходить за промінь обох проєкторів (на цій глибині ${fmt(Math.min(a[0], b[0]), 2)}…${fmt(Math.max(a[1], b[1]), 2)} м)`);
+  else if (l < Math.max(a[0], b[0]) || r > Math.min(a[1], b[1])) w.push(`частково тільки один проєктор (обидва — ${fmt(Math.max(a[0], b[0]), 2)}…${fmt(Math.min(a[1], b[1]), 2)} м)`);
+  const low = H + (STAGE_H - H) * f - STAGE_H;
+  const high = H + (STAGE_H + IMG_H - H) * f - STAGE_H;
+  const top = p.y + p.height;
+  if (top <= low) w.push(`весь фронт нижче променя: промінь починається на ${fmt(low, 2)} м над сценою`);
+  else if (p.y < low - 0.02) w.push(`низ ${fmt(low - p.y, 2)} м не освітлюється: промінь починається на ${fmt(low, 2)} м над сценою`);
+  if (top > high + 0.02) w.push(`верх вище променя (${fmt(high, 2)} м над сценою)`);
+  return w;
+}
+
+function renderProps() {
+  const list = $('plist');
+  list.textContent = '';
+  const names = PR.map(p => p.name);
+  PR.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = p.name || '—';
+    b.setAttribute('aria-pressed', i === sel ? 'true' : 'false');
+    if (propWarnings(p).length || names.indexOf(p.name) !== i) b.dataset.warn = '1';
+    b.addEventListener('click', () => { sel = i; renderProps(); fillForm(); buildProps(); });
+    list.appendChild(b);
+  });
+  const warn = $('pwarn');
+  warn.textContent = '';
+  if (sel >= 0) {
+    const p = PR[sel];
+    const ws = propWarnings(p);
+    if (names.indexOf(p.name) !== sel || names.lastIndexOf(p.name) !== sel) ws.push('назва повторюється');
+    ws.forEach(t => { const li = document.createElement('li'); li.textContent = t; warn.appendChild(li); });
+  }
+  $('pform').setAttribute('aria-disabled', sel < 0 ? 'true' : 'false');
+  $('p-del').disabled = sel < 0;
+  if (!PR.length) pstatus('Пропсів немає. «+ Додати» або імпорт JSON.');
+}
+function fillForm() {
+  PF.forEach(k => { const el = $('pf-' + k); el.value = sel < 0 ? '' : PR[sel][k] ?? ''; });
+}
+PF.forEach(k => $('pf-' + k).addEventListener('input', e => {
+  if (sel < 0) return;
+  if (k === 'name') PR[sel].name = e.target.value.trim();
+  else {
+    const v = parseFloat(String(e.target.value).replace(',', '.'));
+    if (!Number.isFinite(v)) return;
+    if ((k === 'width' || k === 'height' || k === 'depth') && v <= 0) return;
+    PR[sel][k] = v;
+  }
+  saveProps(); buildProps(); renderProps();
+}));
+$('p-add').addEventListener('click', () => {
+  let n = PR.length + 1;
+  while (PR.some(p => p.name === 'prop_' + n)) n++;
+  PR.push({ name: 'prop_' + n, x: 0, y: 0, width: 0.6, height: 0.6, z: 0.15, depth: 0.6 });
+  sel = PR.length - 1;
+  saveProps(); buildProps(); renderProps(); fillForm(); pstatus('');
+  $('pf-x').focus();
+});
+$('p-del').addEventListener('click', () => {
+  if (sel < 0) return;
+  PR.splice(sel, 1);
+  sel = Math.min(sel, PR.length - 1);
+  saveProps(); buildProps(); renderProps(); fillForm();
+});
+$('p-export').addEventListener('click', async () => {
+  const items = PR.map(p => ({ name: p.name, x: r2(p.x), y: r2(p.y), width: r2(p.width), height: r2(p.height), z: r2(p.z), depth: r2(p.depth) }));
+  const json = JSON.stringify(items, null, 2);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([json + '\n'], { type: 'application/json' }));
+  a.download = 'props_items.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  let copied = false;
+  try { await navigator.clipboard.writeText(json); copied = true; } catch (e) {}
+  pstatus(`props_items.json збережено${copied ? ' і скопійовано в буфер' : ''}. Встав масив у props.items конфігу, потім npm run guides.`);
+});
+$('p-import').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const j = JSON.parse(await file.text());
+    const arr = Array.isArray(j) ? j : Array.isArray(j.items) ? j.items : j.props && Array.isArray(j.props.items) ? j.props.items : null;
+    if (!arr) throw new Error('немає масиву пропсів (очікую масив, {items} або stage_config.json)');
+    const num = (v, d) => (Number.isFinite(+v) ? +v : d);
+    const items = arr.map((p, i) => {
+      const it = { name: String(p.name || 'prop_' + (i + 1)), x: num(p.x, NaN), y: num(p.y, 0), width: num(p.width, NaN), height: num(p.height, NaN), z: num(p.z, NaN), depth: num(p.depth, 0.5) };
+      if (![it.x, it.width, it.height, it.z].every(Number.isFinite) || it.width <= 0 || it.height <= 0) throw new Error(`пропс ${i + 1}: потрібні числа x, width, height, z`);
+      return it;
+    });
+    PR = items;
+    sel = PR.length ? 0 : -1;
+    saveProps(); buildProps(); renderProps(); fillForm();
+    pstatus(`Імпортовано ${PR.length} з ${file.name}.`);
+  } catch (err) {
+    pstatus(`Не вдалося імпортувати ${file.name}: ${err.message}`, true);
+  }
+});
+buildProps(); renderProps(); fillForm();
 
 function resize() {
   const w = view.clientWidth, h = view.clientHeight;
